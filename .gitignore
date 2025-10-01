@@ -1,0 +1,318 @@
+# COBOL Banking System Modernization - .gitignore
+
+#############################################
+# COBOL-specific files
+#############################################
+
+# Compiled COBOL executables and libraries
+cobol-banking/bin/BANKLEDG
+cobol-banking/bin/HISTORY.dylib
+cobol-banking/bin/TRANSFER.dylib
+cobol-banking/bin/*.dylib
+cobol-banking/bin/*
+!cobol-banking/bin/.gitkeep
+
+# COBOL data files (optional - remove lines below if you want to commit data)
+cobol-banking/data/ACCOUNTS.DAT
+cobol-banking/data/TRANSACT.DAT
+cobol-banking/data/COUNTER.DAT
+cobol-banking/data/*.DAT
+cobol-banking/data/*.TMP
+cobol-banking/data/*.BAK
+
+# COBOL compilation artifacts
+*.o
+*.so
+*.lst
+*.lis
+
+#############################################
+# Node.js / API Server files
+#############################################
+
+# Dependencies
+api-server/node_modules/
+api-server/npm-debug.log*
+api-server/yarn-debug.log*
+api-server/yarn-error.log*
+
+# Runtime data
+api-server/pids
+api-server/*.pid
+api-server/*.seed
+api-server/*.pid.lock
+
+# Coverage directory used by tools like istanbul
+api-server/coverage/
+
+# Logs
+api-server/logs
+api-server/*.log
+
+# Environment variables
+api-server/.env
+api-server/.env.local
+api-server/.env.development.local
+api-server/.env.test.local
+api-server/.env.production.local
+
+#############################################
+# Frontend / Web Interface files
+#############################################
+
+# Dependencies
+web-frontend/node_modules/
+web-frontend/npm-debug.log*
+web-frontend/yarn-debug.log*
+web-frontend/yarn-error.log*
+
+# Production builds
+web-frontend/build/
+web-frontend/dist/
+
+# Runtime data
+web-frontend/.cache/
+
+# Environment variables
+web-frontend/.env
+web-frontend/.env.local
+web-frontend/.env.development.local
+web-frontend/.env.test.local
+web-frontend/.env.production.local
+
+#############################################
+# IDE and Editor files
+#############################################
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+#############################################
+# Operating System files
+#############################################
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+#############################################
+# Temporary and backup files
+#############################################
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Patch files
+*.patch
+*.diff
+
+#############################################
+# Language Server and Development Tools
+#############################################
+
+# SuperBOL COBOL language server cache
+_superbol/
+.superbol/
+
+# Language server protocol files
+*.lsp
+.lsp-cache
+
+# Debug files
+debug.log
+*.debug
+
+#############################################
+# Testing and CI/CD
+#############################################
+
+# Test coverage
+coverage/
+*.lcov
+
+# Jest
+.jest/
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+
+# Test artifacts
+test-results/
+test-reports/
+
+#############################################
+# Documentation generated files
+#############################################
+
+# API documentation
+docs/generated/
+api-docs/build/
+
+# JSDoc
+docs/jsdoc/
+
+#############################################
+# Package managers
+#############################################
+
+# npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# pnpm
+.pnpm-debug.log*
+
+#############################################
+# Security and secrets
+#############################################
+
+# API keys and secrets
+.env
+.env.local
+.env.*.local
+secrets.json
+*.key
+*.pem
+*.p12
+*.pfx
+
+# SSL certificates
+*.crt
+*.cer
+*.der
+
+#############################################
+# Logs and monitoring
+#############################################
+
+# Application logs
+logs/
+*.log
+access.log
+error.log
+combined.log
+
+# Monitoring and metrics
+metrics/
+monitoring/
+
+#############################################
+# Development containers and virtualization
+#############################################
+
+# Docker
+.dockerignore
+Dockerfile.dev
+docker-compose.override.yml
+
+# Vagrant
+.vagrant/
+
+#############################################
+# Miscellaneous
+#############################################
+
+# Custom scripts (if you want to ignore them)
+# scripts/dev-*
+# scripts/temp-*
+
+# Project-specific temporary directories
+temp/
+tmp/
+scratch/
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Keep empty directories
+!.gitkeep
+

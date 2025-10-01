@@ -1,0 +1,36 @@
+{
+  "name": "cobol-modernize-example",
+  "version": "1.0.0",
+  "description": "A scaled-down example of COBOL modernization to integrate with modern tools.",
+  "main": "api-server/server.js",
+  "scripts": {
+    "start": "node api-server/server.js",
+    "dev": "nodemon api-server/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:api": "node api-server/test-server.js",
+    "cleanup": "node api-server/utils/cleanup.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dgsmith7/cobol-modernize-example.git"
+  },
+  "keywords": [
+    "COBOL",
+    "modernization",
+    "API"
+  ],
+  "author": "David G. Smith",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dgsmith7/cobol-modernize-example/issues"
+  },
+  "homepage": "https://github.com/dgsmith7/cobol-modernize-example#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "joi": "^18.0.1",
+    "morgan": "^1.10.1",
+    "winston": "^3.18.3"
+  }
+}

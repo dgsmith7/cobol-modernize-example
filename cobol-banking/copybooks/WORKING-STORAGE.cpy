@@ -34,6 +34,16 @@
        01  WS-ACCOUNT-PARM             PIC 9(10).
        01  WS-AMOUNT-PARM              PIC 9(10)V99.
        01  WS-TO-ACCOUNT-PARM          PIC 9(10).
+       01  WS-CUSTOMER-NAME            PIC X(30).
+       
+      *    Additional parsing variables
+       01  WS-TEMP-STRING              PIC X(50).
+       01  WS-TEMP-AMOUNT              PIC X(20).
+       01  WS-TEMP-ACCOUNT             PIC X(10).
+       01  WS-CLEAN-AMOUNT             PIC X(20).
+       01  WS-TEMP-COUNT               PIC 9(3).
+       01  WS-START-POS                PIC 9(3).
+       01  WS-NAME-LENGTH              PIC 9(3).
       
       *    Display and formatting variables
        01  WS-DISPLAY-AMOUNT           PIC Z,ZZZ,ZZ9.99.

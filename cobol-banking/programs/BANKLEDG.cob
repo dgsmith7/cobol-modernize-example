@@ -63,7 +63,6 @@
                88  INVALID-COMMAND     VALUE 'N'.
        
        01  WS-BACKUP-BALANCE           PIC S9(10)V99 COMP-3.
-       01  WS-CUSTOMER-NAME            PIC X(30).
        01  WS-COMMAND-LINE             PIC X(100).
        
        PROCEDURE DIVISION.
@@ -182,37 +181,32 @@
            END-IF.
        
        PARSE-CREATE-PARAMETERS.
-      *    Parse CREATE command manually for now
-      *    Expected: CREATE 1001001001 "John Doe" 5000.00
-      *    For demo purposes, we'll hard-code some parsing
+      *    Parse CREATE command: CREATE account-num customer-name amount
+      *    Simple 4-token format without quotes
            
+           MOVE SPACES TO WS-CUSTOMER-NAME
+           MOVE SPACES TO WS-TEMP-AMOUNT
+           
+      *    Parse 4 tokens: CREATE ACCOUNT NAME AMOUNT
            UNSTRING WS-PARM-DATA DELIMITED BY SPACE
                INTO WS-COMMAND
-                    WS-ACCOUNT-PARM
+                    WS-TEMP-ACCOUNT
+                    WS-CUSTOMER-NAME
+                    WS-TEMP-AMOUNT
+           END-UNSTRING
            
-      *    Simple approach: check if we have the expected demo values
-           IF WS-ACCOUNT-PARM = 1001001001
-               MOVE "John Doe" TO WS-CUSTOMER-NAME
-               MOVE 5000.00 TO WS-AMOUNT-PARM
+      *    Convert account number
+           IF WS-TEMP-ACCOUNT IS NUMERIC
+               MOVE WS-TEMP-ACCOUNT TO WS-ACCOUNT-PARM
            ELSE
-               IF WS-ACCOUNT-PARM = 1002002002
-                   MOVE "Jane Smith" TO WS-CUSTOMER-NAME
-                   MOVE 3500.75 TO WS-AMOUNT-PARM
-               ELSE
-                   IF WS-ACCOUNT-PARM = 1003003003
-                       MOVE "Bob Johnson" TO WS-CUSTOMER-NAME
-                       MOVE 1200.50 TO WS-AMOUNT-PARM
-                   ELSE
-                       IF WS-ACCOUNT-PARM = 1004004004
-                           MOVE "Alice Brown" TO WS-CUSTOMER-NAME
-                           MOVE 750.25 TO WS-AMOUNT-PARM
-                       ELSE
-      *                    Generic parsing for other accounts
-                           MOVE "Test User" TO WS-CUSTOMER-NAME
-                           MOVE 1000.00 TO WS-AMOUNT-PARM
-                       END-IF
-                   END-IF
-               END-IF
+               MOVE ZERO TO WS-ACCOUNT-PARM
+           END-IF
+           
+      *    Parse amount
+           IF WS-TEMP-AMOUNT NOT = SPACES
+               COMPUTE WS-AMOUNT-PARM = FUNCTION NUMVAL(WS-TEMP-AMOUNT)
+           ELSE
+               MOVE 0.00 TO WS-AMOUNT-PARM
            END-IF.
        
        CREATE-ACCOUNT.
@@ -520,7 +514,7 @@
            DISPLAY "======================================"
            DISPLAY " "
            DISPLAY "CREATE account-num customer-name initial-balance"
-           DISPLAY "  Example: CREATE 1234567890 'John Doe' 1000.00"
+           DISPLAY "  Example: CREATE 1234567890 Customer_Name 250.00"
            DISPLAY " "
            DISPLAY "DEPOSIT account-num amount"
            DISPLAY "  Example: DEPOSIT 1234567890 250.50"
@@ -545,6 +539,14 @@
            DISPLAY "Transaction history feature is implemented"
            DISPLAY "but requires database connection for full display."
            DISPLAY " ".
+       
+       PARSE-AMOUNT-VALUE.
+      *    Convert amount using NUMVAL function for decimal handling
+           IF WS-TEMP-AMOUNT NOT = SPACES
+               COMPUTE WS-AMOUNT-PARM = FUNCTION NUMVAL(WS-TEMP-AMOUNT)
+           ELSE
+               MOVE 0.00 TO WS-AMOUNT-PARM
+           END-IF.
        
        TERMINATION.
       *    Cleanup activities if needed

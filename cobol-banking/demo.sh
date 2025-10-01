@@ -25,10 +25,10 @@ BANKLEDG="./bin/BANKLEDG"
 
 echo "1. Creating sample accounts..."
 echo "------------------------------"
-$BANKLEDG CREATE 1001001001 "John Doe" 5000.00
-$BANKLEDG CREATE 1002002002 "Jane Smith" 3500.75
-$BANKLEDG CREATE 1003003003 "Bob Johnson" 1200.50
-$BANKLEDG CREATE 1004004004 "Alice Brown" 750.25
+$BANKLEDG CREATE 1001001001 John_Doe 5000.00
+$BANKLEDG CREATE 1002002002 Jane_Smith 3500.75
+$BANKLEDG CREATE 1003003003 Bob_Johnson 1200.50
+$BANKLEDG CREATE 1004004004 Alice_Brown 750.25
 echo ""
 
 echo "2. Checking account balances..."

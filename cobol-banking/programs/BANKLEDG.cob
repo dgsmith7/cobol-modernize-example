@@ -19,10 +19,11 @@
        ENVIRONMENT DIVISION.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-      *    Account master file - sequential for GnuCOBOL compatibility
+      *    Account master file - indexed for proper record management
            SELECT ACCOUNT-FILE ASSIGN TO "data/ACCOUNTS.DAT"
-               ORGANIZATION IS SEQUENTIAL
-               ACCESS MODE IS SEQUENTIAL
+               ORGANIZATION IS INDEXED
+               ACCESS MODE IS DYNAMIC
+               RECORD KEY IS ACC-NUMBER
                FILE STATUS IS WS-FILE-STATUS.
       
       *    Transaction history file - sequential append
@@ -63,6 +64,9 @@
                88  INVALID-COMMAND     VALUE 'N'.
        
        01  WS-BACKUP-BALANCE           PIC S9(10)V99 COMP-3.
+       01  WS-FROM-BALANCE             PIC S9(10)V99 COMP-3.
+       01  WS-TO-BALANCE               PIC S9(10)V99 COMP-3.
+       01  WS-CURRENT-BALANCE          PIC S9(10)V99 COMP-3.
        01  WS-COMMAND-LINE             PIC X(100).
        
        PROCEDURE DIVISION.
@@ -136,12 +140,24 @@
            IF WS-COMMAND = "CREATE"
                PERFORM PARSE-CREATE-PARAMETERS
            ELSE
-      *        Handle other commands
-               UNSTRING WS-PARM-DATA DELIMITED BY SPACE
-                   INTO WS-COMMAND
-                        WS-ACCOUNT-PARM
-                        WS-AMOUNT-PARM
-                        WS-TO-ACCOUNT-PARM
+      *        Handle other commands with different parameter orders
+               EVALUATE WS-COMMAND
+                   WHEN "TRANSFER"
+      *                TRANSFER fromAccount toAccount amount
+                       UNSTRING WS-PARM-DATA DELIMITED BY SPACE
+                           INTO WS-COMMAND
+                                WS-ACCOUNT-PARM
+                                WS-TO-ACCOUNT-PARM
+                                WS-TEMP-AMOUNT
+                       PERFORM PARSE-AMOUNT-VALUE
+                   WHEN OTHER
+      *                Other commands: COMMAND account amount
+                       UNSTRING WS-PARM-DATA DELIMITED BY SPACE
+                           INTO WS-COMMAND
+                                WS-ACCOUNT-PARM
+                                WS-TEMP-AMOUNT
+                       PERFORM PARSE-AMOUNT-VALUE
+               END-EVALUATE
            END-IF
            
       *    Convert command to uppercase
@@ -218,58 +234,43 @@
                EXIT PARAGRAPH
            END-IF
            
-      *    Check if account already exists - sequential search
-           OPEN INPUT ACCOUNT-FILE
+      *    Check if account already exists using indexed access
+           OPEN I-O ACCOUNT-FILE
            IF WS-FILE-STATUS = "35"
       *        File doesn't exist, create it
                CLOSE ACCOUNT-FILE
                OPEN OUTPUT ACCOUNT-FILE
                CLOSE ACCOUNT-FILE
-               SET ACCOUNT-NOT-FOUND TO TRUE
-           ELSE
-      *        Search for existing account
-               SET ACCOUNT-NOT-FOUND TO TRUE
-               PERFORM UNTIL WS-FILE-STATUS NOT = "00"
-                   READ ACCOUNT-FILE
-                       AT END
-                           EXIT PERFORM
-                       NOT AT END
-                           IF ACC-NUMBER = WS-ACCOUNT-PARM
-                               SET ACCOUNT-FOUND TO TRUE
-                               EXIT PERFORM
-                           END-IF
-                   END-READ
-               END-PERFORM
-               CLOSE ACCOUNT-FILE
+               OPEN I-O ACCOUNT-FILE
            END-IF
            
-           IF ACCOUNT-FOUND
-               DISPLAY "Error: Account " WS-ACCOUNT-PARM 
-                       " already exists"
-               MOVE 8 TO WS-MAIN-RETURN-CODE
-           ELSE
-      *        Create new account record
-               MOVE WS-ACCOUNT-PARM TO ACC-NUMBER
-               MOVE WS-CUSTOMER-NAME TO ACC-CUSTOMER-NAME
-               MOVE WS-AMOUNT-PARM TO ACC-BALANCE
-               MOVE "A" TO ACC-STATUS
-               MOVE WS-DATE-NUMERIC TO ACC-OPEN-DATE
-               
-      *        Append the new account to sequential file
-               OPEN EXTEND ACCOUNT-FILE
-               WRITE ACCOUNT-RECORD
-               IF WS-FILE-STATUS NOT = "00"
-                   DISPLAY "Error writing account record"
-                   DISPLAY "File status: " WS-FILE-STATUS
+           MOVE WS-ACCOUNT-PARM TO ACC-NUMBER
+           READ ACCOUNT-FILE
+               INVALID KEY
+      *            Account doesn't exist - we can create it
+                   MOVE WS-CUSTOMER-NAME TO ACC-CUSTOMER-NAME
+                   MOVE WS-AMOUNT-PARM TO ACC-BALANCE
+                   MOVE "A" TO ACC-STATUS
+                   MOVE WS-DATE-NUMERIC TO ACC-OPEN-DATE
+                   
+                   WRITE ACCOUNT-RECORD
+                   IF WS-FILE-STATUS NOT = "00"
+                       DISPLAY "Error writing account record"
+                       DISPLAY "File status: " WS-FILE-STATUS
+                       MOVE 8 TO WS-MAIN-RETURN-CODE
+                   ELSE
+                       MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
+                       DISPLAY "Account " ACC-NUMBER " created for "
+                               ACC-CUSTOMER-NAME
+                       DISPLAY "Initial balance: $" WS-DISPLAY-BALANCE
+                       MOVE 0 TO WS-MAIN-RETURN-CODE
+                   END-IF
+               NOT INVALID KEY
+                   DISPLAY "Error: Account " WS-ACCOUNT-PARM 
+                           " already exists"
                    MOVE 8 TO WS-MAIN-RETURN-CODE
-               ELSE
-                   MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
-                   DISPLAY "Account " ACC-NUMBER " created for "
-                           ACC-CUSTOMER-NAME
-                   DISPLAY "Initial balance: $" WS-DISPLAY-BALANCE
-               END-IF
-               CLOSE ACCOUNT-FILE
-           END-IF.
+           END-READ
+           CLOSE ACCOUNT-FILE.
        
        DEPOSIT-PROCESSING.
       *    Validate deposit parameters
@@ -286,16 +287,36 @@
                EXIT PARAGRAPH
            END-IF
            
-      *    Find and update account using sequential file approach
-           PERFORM UPDATE-ACCOUNT-BALANCE
-           
-           IF WS-MAIN-RETURN-CODE = 0
-               MOVE WS-AMOUNT-PARM TO WS-DISPLAY-AMOUNT
-               DISPLAY "Deposit of $" WS-DISPLAY-AMOUNT 
-                       " processed for account " WS-ACCOUNT-PARM
-               MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
-               DISPLAY "New balance: $" WS-DISPLAY-BALANCE
-           END-IF.
+      *    Read, update and rewrite account using indexed file
+           OPEN I-O ACCOUNT-FILE
+           MOVE WS-ACCOUNT-PARM TO ACC-NUMBER
+           READ ACCOUNT-FILE
+               INVALID KEY
+                   DISPLAY "Error: Account " WS-ACCOUNT-PARM 
+                           " not found"
+                   MOVE 8 TO WS-MAIN-RETURN-CODE
+               NOT INVALID KEY
+                   IF ACC-STATUS NOT = "A"
+                       DISPLAY "Error: Account is not active"
+                       MOVE 8 TO WS-MAIN-RETURN-CODE
+                   ELSE
+                       ADD WS-AMOUNT-PARM TO ACC-BALANCE
+                       REWRITE ACCOUNT-RECORD
+                       IF WS-FILE-STATUS = "00"
+                           MOVE WS-AMOUNT-PARM TO WS-DISPLAY-AMOUNT
+                           DISPLAY "Deposit processed"
+                           DISPLAY WS-ACCOUNT-PARM
+                           DISPLAY WS-DISPLAY-AMOUNT
+                           MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
+                           DISPLAY WS-DISPLAY-BALANCE
+                           MOVE 0 TO WS-MAIN-RETURN-CODE
+                       ELSE
+                           DISPLAY "Error updating account"
+                           MOVE 8 TO WS-MAIN-RETURN-CODE
+                       END-IF
+                   END-IF
+           END-READ
+           CLOSE ACCOUNT-FILE.
        
        WITHDRAW-PROCESSING.
       *    Validate withdrawal parameters
@@ -311,21 +332,43 @@
                MOVE 8 TO WS-MAIN-RETURN-CODE
                EXIT PARAGRAPH
            END-IF
-           
-      *    Find and update account using sequential file approach
-      *    For withdrawal, negate the amount
-           COMPUTE WS-AMOUNT-PARM = WS-AMOUNT-PARM * -1
-           PERFORM UPDATE-ACCOUNT-BALANCE
-           COMPUTE WS-AMOUNT-PARM = WS-AMOUNT-PARM * -1
-           
-           IF WS-MAIN-RETURN-CODE = 0
-               MOVE WS-AMOUNT-PARM TO WS-DISPLAY-AMOUNT
-               DISPLAY "Withdrawal of $" WS-DISPLAY-AMOUNT 
-                       " processed for account " WS-ACCOUNT-PARM
-               MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
-               DISPLAY "New balance: $" WS-DISPLAY-BALANCE
-           END-IF.
-       
+
+      *    Read, validate, update and rewrite account using indexed file
+           OPEN I-O ACCOUNT-FILE
+           MOVE WS-ACCOUNT-PARM TO ACC-NUMBER
+           READ ACCOUNT-FILE
+               INVALID KEY
+                   DISPLAY "Error: Account " WS-ACCOUNT-PARM 
+                           " not found"
+                   MOVE 8 TO WS-MAIN-RETURN-CODE
+               NOT INVALID KEY
+                   IF ACC-STATUS NOT = "A"
+                       DISPLAY "Error: Account is not active"
+                       MOVE 8 TO WS-MAIN-RETURN-CODE
+                   ELSE
+                       IF ACC-BALANCE < WS-AMOUNT-PARM
+                           DISPLAY "Error: Insufficient funds"
+                           MOVE 8 TO WS-MAIN-RETURN-CODE
+                       ELSE
+                           SUBTRACT WS-AMOUNT-PARM FROM ACC-BALANCE
+                           REWRITE ACCOUNT-RECORD
+                           IF WS-FILE-STATUS = "00"
+                               MOVE WS-AMOUNT-PARM TO WS-DISPLAY-AMOUNT
+                               DISPLAY "Withdrawal processed"
+                               DISPLAY WS-ACCOUNT-PARM
+                               DISPLAY WS-DISPLAY-AMOUNT
+                               MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
+                               DISPLAY WS-DISPLAY-BALANCE
+                               MOVE 0 TO WS-MAIN-RETURN-CODE
+                           ELSE
+                               DISPLAY "Error updating account"
+                               MOVE 8 TO WS-MAIN-RETURN-CODE
+                           END-IF
+                       END-IF
+                   END-IF
+           END-READ
+           CLOSE ACCOUNT-FILE.
+
        TRANSFER-PROCESSING.
       *    Validate transfer parameters
            IF WS-ACCOUNT-PARM = ZERO OR WS-TO-ACCOUNT-PARM = ZERO OR
@@ -336,10 +379,92 @@
                EXIT PARAGRAPH
            END-IF
            
-      *    Implement simple transfer inline for now
-           DISPLAY "Transfer functionality requires full implementation"
-           DISPLAY "For demo: use separate DEPOSIT/WITHDRAW operations"
-           MOVE 4 TO WS-MAIN-RETURN-CODE.
+      *    Implement transfer using indexed file operations
+           OPEN I-O ACCOUNT-FILE
+           
+      *    Read and validate FROM account
+           MOVE WS-ACCOUNT-PARM TO ACC-NUMBER
+           READ ACCOUNT-FILE
+               INVALID KEY
+                   DISPLAY "Error: From account " WS-ACCOUNT-PARM 
+                           " not found"
+                   MOVE 8 TO WS-MAIN-RETURN-CODE
+                   CLOSE ACCOUNT-FILE
+                   EXIT PARAGRAPH
+               NOT INVALID KEY
+                   IF ACC-STATUS NOT = "A"
+                       DISPLAY "Error: From account is not active"
+                       MOVE 8 TO WS-MAIN-RETURN-CODE
+                       CLOSE ACCOUNT-FILE
+                       EXIT PARAGRAPH
+                   END-IF
+                   IF ACC-BALANCE < WS-AMOUNT-PARM
+                       DISPLAY "Error: Insufficient funds"
+                       MOVE 8 TO WS-MAIN-RETURN-CODE
+                       CLOSE ACCOUNT-FILE
+                       EXIT PARAGRAPH
+                   END-IF
+                   MOVE ACC-BALANCE TO WS-FROM-BALANCE
+           END-READ
+           
+      *    Read and validate TO account
+           MOVE WS-TO-ACCOUNT-PARM TO ACC-NUMBER
+           READ ACCOUNT-FILE
+               INVALID KEY
+                   DISPLAY "Error: To account " WS-TO-ACCOUNT-PARM 
+                           " not found"
+                   MOVE 8 TO WS-MAIN-RETURN-CODE
+                   CLOSE ACCOUNT-FILE
+                   EXIT PARAGRAPH
+               NOT INVALID KEY
+                   IF ACC-STATUS NOT = "A"
+                       DISPLAY "Error: To account is not active"
+                       MOVE 8 TO WS-MAIN-RETURN-CODE
+                       CLOSE ACCOUNT-FILE
+                       EXIT PARAGRAPH
+                   END-IF
+                   MOVE ACC-BALANCE TO WS-TO-BALANCE
+           END-READ
+           
+      *    Update FROM account (subtract amount)
+           MOVE WS-ACCOUNT-PARM TO ACC-NUMBER
+           READ ACCOUNT-FILE
+               INVALID KEY
+                   DISPLAY "Error reading from account for update"
+                   MOVE 8 TO WS-MAIN-RETURN-CODE
+                   CLOSE ACCOUNT-FILE
+                   EXIT PARAGRAPH
+               NOT INVALID KEY
+                   SUBTRACT WS-AMOUNT-PARM FROM ACC-BALANCE
+                   REWRITE ACCOUNT-RECORD
+                   MOVE ACC-BALANCE TO WS-FROM-BALANCE
+           END-READ
+           
+      *    Update TO account (add amount)
+           MOVE WS-TO-ACCOUNT-PARM TO ACC-NUMBER
+           READ ACCOUNT-FILE
+               INVALID KEY
+                   DISPLAY "Error reading to account for update"
+                   MOVE 8 TO WS-MAIN-RETURN-CODE
+                   CLOSE ACCOUNT-FILE
+                   EXIT PARAGRAPH
+               NOT INVALID KEY
+                   ADD WS-AMOUNT-PARM TO ACC-BALANCE
+                   REWRITE ACCOUNT-RECORD
+                   MOVE ACC-BALANCE TO WS-TO-BALANCE
+           END-READ
+           
+           CLOSE ACCOUNT-FILE
+           
+      *    Display results
+           DISPLAY "TRANSFER COMPLETED"
+           DISPLAY "From Account: " WS-ACCOUNT-PARM
+           DISPLAY "To Account: " WS-TO-ACCOUNT-PARM  
+           DISPLAY "Amount: " WS-AMOUNT-PARM
+           DISPLAY "From Balance: " WS-FROM-BALANCE
+           DISPLAY "To Balance: " WS-TO-BALANCE
+           
+           MOVE 0 TO WS-MAIN-RETURN-CODE.
        
        BALANCE-INQUIRY.
       *    Validate account parameter
@@ -349,36 +474,22 @@
                EXIT PARAGRAPH
            END-IF
            
-      *    Open account file and search for most recent account record
+      *    Open indexed account file and read by key
            OPEN INPUT ACCOUNT-FILE
-           SET ACCOUNT-NOT-FOUND TO TRUE
-           PERFORM UNTIL WS-FILE-STATUS NOT = "00"
-               READ ACCOUNT-FILE
-                   AT END
-                       EXIT PERFORM
-                   NOT AT END
-                       IF ACC-NUMBER = WS-ACCOUNT-PARM
-                           SET ACCOUNT-FOUND TO TRUE
-      *                    Keep reading to get the most recent record
-                           MOVE ACCOUNT-RECORD TO WS-BACKUP-RECORD
-                       END-IF
-               END-READ
-           END-PERFORM
-           
-           IF ACCOUNT-NOT-FOUND
-               DISPLAY "Error: Account " WS-ACCOUNT-PARM 
-                       " not found"
-               MOVE 8 TO WS-MAIN-RETURN-CODE
-           ELSE
-      *        Use the most recent record found
-               MOVE WS-BACKUP-RECORD TO ACCOUNT-RECORD
-               MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
-               DISPLAY "Account: " ACC-NUMBER
-               DISPLAY "Customer: " ACC-CUSTOMER-NAME
-               DISPLAY "Balance: $" WS-DISPLAY-BALANCE
-               DISPLAY "Status: " ACC-STATUS
-           END-IF
-           
+           MOVE WS-ACCOUNT-PARM TO ACC-NUMBER
+           READ ACCOUNT-FILE
+               INVALID KEY
+                   DISPLAY "Error: Account " WS-ACCOUNT-PARM 
+                           " not found"
+                   MOVE 8 TO WS-MAIN-RETURN-CODE
+               NOT INVALID KEY
+                   MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
+                   DISPLAY "Account: " ACC-NUMBER
+                   DISPLAY "Customer: " ACC-CUSTOMER-NAME
+                   DISPLAY "Balance: $" WS-DISPLAY-BALANCE
+                   DISPLAY "Status: " ACC-STATUS
+                   MOVE 0 TO WS-MAIN-RETURN-CODE
+           END-READ
            CLOSE ACCOUNT-FILE.
        
        TRANSACTION-HISTORY.
@@ -446,67 +557,7 @@
            WRITE COUNTER-RECORD
            CLOSE COUNTER-FILE.
        
-       UPDATE-ACCOUNT-BALANCE.
-      *    Simple append-based approach for sequential files
-      *    Instead of updating in place, append updated account record
-           SET ACCOUNT-NOT-FOUND TO TRUE
-           
-      *    Find and validate the account
-           OPEN INPUT ACCOUNT-FILE
-           IF WS-FILE-STATUS NOT = "00"
-               DISPLAY "Error: Cannot open account file"
-               MOVE 8 TO WS-MAIN-RETURN-CODE
-               EXIT PARAGRAPH
-           END-IF
-           
-           PERFORM UNTIL WS-FILE-STATUS NOT = "00"
-               READ ACCOUNT-FILE
-                   AT END
-                       EXIT PERFORM
-                   NOT AT END
-                       IF ACC-NUMBER = WS-ACCOUNT-PARM
-                           SET ACCOUNT-FOUND TO TRUE
-                           
-      *                    Validate account status
-                           IF ACC-STATUS NOT = "A"
-                               DISPLAY "Error: Account is not active"
-                               MOVE 8 TO WS-MAIN-RETURN-CODE
-                               CLOSE ACCOUNT-FILE
-                               EXIT PARAGRAPH
-                           END-IF
-                           
-      *                    Check balance for withdrawals (negative amounts)
-                           IF WS-AMOUNT-PARM < 0
-                               COMPUTE WS-BACKUP-BALANCE = 
-                                   ACC-BALANCE + WS-AMOUNT-PARM
-                               IF WS-BACKUP-BALANCE < MIN-BALANCE
-                                   DISPLAY "Error: Insufficient funds"
-                                   MOVE 8 TO WS-MAIN-RETURN-CODE
-                                   CLOSE ACCOUNT-FILE
-                                   EXIT PARAGRAPH
-                               END-IF
-                           END-IF
-                           
-      *                    Update balance and append new record
-                           ADD WS-AMOUNT-PARM TO ACC-BALANCE
-                           MOVE ACCOUNT-RECORD TO WS-BACKUP-RECORD
-                           EXIT PERFORM
-                       END-IF
-               END-READ
-           END-PERFORM
-           CLOSE ACCOUNT-FILE
-           
-           IF ACCOUNT-NOT-FOUND
-               DISPLAY "Error: Account " WS-ACCOUNT-PARM " not found"
-               MOVE 8 TO WS-MAIN-RETURN-CODE
-               EXIT PARAGRAPH
-           END-IF
-           
-      *    Append the updated account record
-           OPEN EXTEND ACCOUNT-FILE
-           MOVE WS-BACKUP-RECORD TO ACCOUNT-RECORD
-           WRITE ACCOUNT-RECORD
-           CLOSE ACCOUNT-FILE.
+
        
        DISPLAY-USAGE.
            DISPLAY " "
@@ -539,6 +590,8 @@
            DISPLAY "Transaction history feature is implemented"
            DISPLAY "but requires database connection for full display."
            DISPLAY " ".
+       
+
        
        PARSE-AMOUNT-VALUE.
       *    Convert amount using NUMVAL function for decimal handling

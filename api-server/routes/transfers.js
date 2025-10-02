@@ -1,23 +1,66 @@
 const express = require("express");
 const router = express.Router();
 const logger = require("../utils/logger");
+const cobolIntegration = require("../utils/cobolIntegration");
 
 // POST /api/transfers - Transfer between accounts
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
+  const startTime = Date.now();
   logger.logRequest(req, "Transfer between accounts");
 
-  res.json({
-    message: "Transfer endpoint - to be implemented with COBOL integration",
-    endpoint: "POST /api/transfers",
-    cobolCommand: "TRANSFER fromAccount toAccount amount",
-    expectedBody: {
-      fromAccount: "1234567890",
-      toAccount: "9876543210",
-      amount: 500.0,
-      description: "Transfer to savings",
-    },
-    status: "not_implemented",
-  });
+  try {
+    const { fromAccount, toAccount, amount } = req.body;
+
+    // Validate required fields
+    if (!fromAccount || !toAccount || !amount) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields: fromAccount, toAccount, amount",
+        meta: {
+          executionTime: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Validate amount is positive
+    if (amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Amount must be greater than zero",
+        meta: {
+          executionTime: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Execute COBOL TRANSFER command
+    const result = await cobolIntegration.executeCommand("TRANSFER", [
+      fromAccount,
+      toAccount,
+      amount.toString(),
+    ]);
+
+    res.json({
+      success: true,
+      data: result.data,
+      meta: {
+        executionTime: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.logError(error, { body: req.body });
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      meta: {
+        executionTime: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
 });
 
 // GET /api/transfers - List recent transfers (enhanced feature)

@@ -124,7 +124,6 @@
       *    Accept command line arguments
            ACCEPT WS-COMMAND-LINE FROM COMMAND-LINE
            MOVE WS-COMMAND-LINE TO WS-PARM-DATA
-           
       *    Initialize parameters
            MOVE SPACES TO WS-COMMAND
            MOVE ZERO TO WS-ACCOUNT-PARM

@@ -26,19 +26,19 @@ BAL2=$($BIN BALANCE 9876543210 | grep "Balance:" | awk '{print $2$3}')
 echo "Alice: $BAL1 | Bob: $BAL2"
 
 echo
-echo "3. Deposit $250.50 to Alice..."
+echo "3. Deposit \$250.50 to Alice..."
 $BIN DEPOSIT 1234567890 250.50
 BAL1_NEW=$($BIN BALANCE 1234567890 | grep "Balance:" | awk '{print $2$3}')
 echo "Alice new balance: $BAL1_NEW"
 
 echo
-echo "4. Withdraw $100 from Alice..."
+echo "4. Withdraw \$100 from Alice..."
 $BIN WITHDRAW 1234567890 100.00
 BAL1_NEW2=$($BIN BALANCE 1234567890 | grep "Balance:" | awk '{print $2$3}')
 echo "Alice new balance: $BAL1_NEW2"
 
 echo
-echo "5. Transfer $200 from Alice to Bob..."
+echo "5. Transfer \$200 from Alice to Bob..."
 $BIN TRANSFER 1234567890 9876543210 200.00
 BAL1_POST=$($BIN BALANCE 1234567890 | grep "Balance:" | awk '{print $2$3}')
 BAL2_POST=$($BIN BALANCE 9876543210 | grep "Balance:" | awk '{print $2$3}')

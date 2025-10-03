@@ -1,10 +1,12 @@
 # COBOL Banking System Modernization Project
 
-This project demonstrates how a legacy COBOL banking system can be modernized for the web era. First the original COBOL banking system was written, followed by the API, and finally the front end. We wrap the original COBOL core with a Node.js REST API and a modern React web interface, enabling new integrations and user experiences while preserving reliability and data integrity. The concept of the project was to makee all aspeects of the core COBOL system available by way of the web without changing the original COBOL core.
+This project demonstrates how a legacy COBOL banking system can be modernized for the web era. First the original COBOL banking system was written, followed by the API, and finally the front end. We wrap the original COBOL core with a Node.js REST API and a modern React web interface, enabling new integrations and user experiences while preserving reliability and data integrity. The concept of the project was to make all aspeects of the core COBOL system available by way of the web without changing the original COBOL core.
 
 This project was built on a 2023 Macbook Pro M3 with a Pro chip, using gnuCOBOL, NodeJS, Express, and REACT. Storage is accomplished with local files and no DB is used. The project was built as a way or me to deepen my knowledge of COBOL and COBOL modernization techniques through hands-on application using modern tools.
 
 I used github Copilot as an AI assistant during all steps of this project.
+
+Any similarities between real bank accounts, real account holder names, or real transactions are purely coincidnetal.
 
 I encourage feedback and discussion. Feel free to submit an issue.
 

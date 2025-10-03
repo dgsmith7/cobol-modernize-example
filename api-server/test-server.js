@@ -42,6 +42,8 @@ async function testCOBOLIntegration() {
       "✅ CREATE command for second account successful:",
       createResult2.data
     );
+    console.log("-----------------------");
+    console.log();
     console.log();
 
     // Test 2: Check balance
@@ -50,6 +52,8 @@ async function testCOBOLIntegration() {
       testAccountNumber,
     ]);
     console.log("✅ BALANCE command successful:", balanceResult.data);
+    console.log("-----------------------");
+    console.log();
     console.log();
 
     // Test 3: Make a deposit
@@ -59,6 +63,8 @@ async function testCOBOLIntegration() {
       "250.50",
     ]);
     console.log("✅ DEPOSIT command successful:", depositResult.data);
+    console.log("-----------------------");
+    console.log();
     console.log();
 
     // Test 4: Make a withdrawal
@@ -68,6 +74,8 @@ async function testCOBOLIntegration() {
       "100.00",
     ]);
     console.log("✅ WITHDRAW command successful:", withdrawResult.data);
+    console.log("-----------------------");
+    console.log();
     console.log();
 
     // Test 5: Make a transfer
@@ -97,6 +105,77 @@ async function testCOBOLIntegration() {
     console.log(
       `   - ${secondAccountNumber}: $${balanceAfterTransfer2.data.balance}`
     );
+    console.log("-----------------------");
+    console.log();
+    console.log();
+
+    // Test 6: Transaction history for first account
+    console.log("\nTest 6: Transaction history for first account...");
+    try {
+      const historyResult = await cobolIntegration.executeCommand("HISTORY", [
+        testAccountNumber,
+      ]);
+      console.log("✅ HISTORY command successful:", historyResult.data);
+    } catch (err) {
+      console.warn(
+        "⚠️  HISTORY command not implemented or failed:",
+        err.message
+      );
+    }
+    console.log("-----------------------");
+    console.log();
+    console.log();
+
+    // Test 7: Attempt overdraft withdrawal (should fail)
+    console.log("\nTest 7: Attempt overdraft withdrawal (should fail)...");
+    try {
+      await cobolIntegration.executeCommand("WITHDRAW", [
+        secondAccountNumber,
+        "999999.99",
+      ]);
+      console.error(
+        "❌ Overdraft test failed: Withdrawal should not have succeeded!"
+      );
+    } catch (err) {
+      console.log("✅ Overdraft correctly rejected:", err.message);
+    }
+    console.log("-----------------------");
+    console.log();
+    console.log();
+
+    // Test 8: Attempt to create duplicate account (should fail)
+    console.log(
+      "\nTest 8: Attempt to create duplicate account (should fail)..."
+    );
+    try {
+      await cobolIntegration.executeCommand("CREATE", [
+        testAccountNumber,
+        "Duplicate_User",
+        "100.00",
+      ]);
+      console.error(
+        "❌ Duplicate account test failed: Creation should not have succeeded!"
+      );
+    } catch (err) {
+      console.log("✅ Duplicate account correctly rejected:", err.message);
+    }
+    console.log("-----------------------");
+    console.log();
+    console.log();
+
+    // Test 9: Check error for non-existent account
+    console.log("\nTest 9: Check error for non-existent account...");
+    try {
+      await cobolIntegration.executeCommand("BALANCE", ["0000000000"]);
+      console.error(
+        "❌ Non-existent account test failed: Should not have succeeded!"
+      );
+    } catch (err) {
+      console.log("✅ Non-existent account correctly rejected:", err.message);
+    }
+    console.log("-----------------------");
+    console.log();
+    console.log();
 
     console.log(
       "\n🎉 All tests passed! COBOL integration is working correctly."

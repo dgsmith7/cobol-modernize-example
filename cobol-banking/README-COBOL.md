@@ -1,12 +1,14 @@
 # COBOL Bank Ledger System
 
+> **Note:** This README documents the COBOL core system only. For the REST API and React web UI, see the READMEs in `api-server/` and `cobol-banking-ui/`.
+
 A comprehensive banking system written in COBOL that demonstrates classic mainframe programming techniques for financial applications. This system provides complete account management, transaction processing, and reporting capabilities using COBOL-friendly sequential files.
 
 ## Features
 
 - **Account Management**: Create, maintain, and query customer accounts
 - **Transaction Processing**: Handle deposits, withdrawals, and transfers
-- **Data Integrity**: Atomic transactions with rollback capabilities
+- **Data Integrity**: Atomic transactions with rollback capabilities (see notes below)
 - **Transaction History**: Complete audit trail of all banking operations
 - **Command-Line Interface**: Parameter-driven execution for easy integration
 - **Error Handling**: Comprehensive validation and error reporting
@@ -19,7 +21,7 @@ The system consists of several modular COBOL programs:
 ### Core Programs
 
 1. **BANKLEDG.cob** - Main program providing CLI interface
-2. **TRANSFER.cob** - Specialized transfer processing with atomic transactions
+2. **TRANSFER.cob** - Specialized transfer processing with atomic transactions (see notes)
 3. **HISTORY.cob** - Transaction history reporting utility
 
 ### Data Structures (Copybooks)
@@ -209,6 +211,21 @@ Transfer functionality requires full implementation
 For demo: use separate DEPOSIT/WITHDRAW operations
 ```
 
+#### LIST - List All Accounts
+
+```bash
+./bin/BANKLEDG LIST
+```
+
+**Output:**
+
+```
+ACCOUNT-NUMBER CUSTOMER-NAME                BALANCE     STATUS
+=============================================================
+1234567890     John Doe                     1000.00     A
+...
+```
+
 #### BALANCE - Check Account Balance
 
 ```bash
@@ -256,8 +273,10 @@ Status: A
 
 ```
 TRANSACTION HISTORY FOR ACCOUNT: 1234567890
-Transaction history feature is implemented
-but requires database connection for full display.
+---------------------------------------------
+Date: 20251003 Time: 093722 Type: D Amount: 0000000250.50 Desc: DEPOSIT                                  Status: P
+Date: 20251003 Time: 093722 Type: W Amount: 0000000100.00 Desc: WITHDRAWAL                               Status: P
+Date: 20251003 Time: 093722 Type: T Amount: 0000000200.00 Desc: TRANSFER                                 Status: P
 ```
 
 ### Command Return Codes
@@ -274,35 +293,7 @@ The system validates all input parameters:
 - **Account numbers** must be exactly 10 digits
 - **Customer names** must be enclosed in quotes and ≤ 30 characters
 - **Amounts** must be positive numbers with up to 2 decimal places
-- **Required parameters** missing parameters cause immediate error
-
-```bash
-./bin/BANKLEDG TRANSFER 1234567890 9876543210 500.00
-```
-
-#### BALANCE - Check Account Balance
-
-```bash
-./bin/BANKLEDG BALANCE account-number
-```
-
-**Example:**
-
-```bash
-./bin/BANKLEDG BALANCE 1234567890
-```
-
-#### HISTORY - View Transaction History
-
-```bash
-./bin/BANKLEDG HISTORY account-number
-```
-
-**Example:**
-
-```bash
-./bin/BANKLEDG HISTORY 1234567890
-```
+- **Required parameters**: missing parameters cause immediate error
 
 ## Demo
 
@@ -341,7 +332,7 @@ This script will:
 - Positive amounts required for all transactions
 - Account existence verified before processing
 - Sufficient funds checked for withdrawals/transfers
-- Atomic transfers with automatic rollback on failure
+- Atomic transfers with automatic rollback on failure (see notes)
 
 ## Error Handling
 
@@ -365,8 +356,8 @@ The system provides comprehensive error checking:
 
 ### Transaction Processing
 
-- **Atomic Operations**: Transfer operations are all-or-nothing
-- **Rollback Capability**: Failed transfers automatically reverse
+- **Atomic Operations**: Transfer operations are all-or-nothing (see notes)
+- **Rollback Capability**: Failed transfers automatically reverse (see notes)
 - **Audit Trail**: All operations logged with timestamps
 - **Unique IDs**: Sequential transaction numbering
 
@@ -417,7 +408,7 @@ The modular design allows for easy extensions:
 ### Integration Points
 
 - **Database Connectivity**: Replace flat files with RDBMS
-- **Web Interface**: Add REST API layer
+- **Web Interface**: A REST API and React front end are provided in this repository (see `api-server/` and `cobol-banking-ui/`)
 - **Batch Processing**: Nightly processing jobs
 - **External Systems**: Integration with other banking modules
 
@@ -489,6 +480,7 @@ This educational project is provided as-is for learning purposes. Feel free to m
 | DEPOSIT  | `./bin/BANKLEDG DEPOSIT account amount`        | Add money to account        |
 | WITHDRAW | `./bin/BANKLEDG WITHDRAW account amount`       | Remove money from account   |
 | TRANSFER | `./bin/BANKLEDG TRANSFER from to amount`       | Move money between accounts |
+| LIST     | `./bin/BANKLEDG LIST`                          | List all accounts           |
 | BALANCE  | `./bin/BANKLEDG BALANCE account`               | Check account balance       |
 | HISTORY  | `./bin/BANKLEDG HISTORY account`               | View transaction history    |
 

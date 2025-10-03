@@ -231,21 +231,14 @@ class AccountController {
   async listAccounts(req, res, next) {
     try {
       logger.logRequest(req, "Listing all accounts");
-
-      // This would require parsing the ACCOUNTS.DAT file directly
-      // For now, return a message indicating this is an enhancement
+      const accounts = await cobolIntegration.listAccounts();
       res.json({
         success: true,
-        message:
-          "Account listing feature - enhanced capability beyond COBOL system",
-        note: "This endpoint could be implemented by parsing the ACCOUNTS.DAT file directly",
-        availableEndpoints: [
-          "GET /api/accounts/:id - Get specific account details",
-          "POST /api/accounts - Create new account",
-          "POST /api/accounts/:id/deposit - Make deposit",
-          "POST /api/accounts/:id/withdraw - Make withdrawal",
-          "GET /api/accounts/:id/history - Get transaction history",
-        ],
+        data: accounts,
+        meta: {
+          count: accounts.length,
+          timestamp: new Date().toISOString(),
+        },
       });
     } catch (error) {
       next(error);

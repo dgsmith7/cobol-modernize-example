@@ -68,7 +68,11 @@
        01  WS-TO-BALANCE               PIC S9(10)V99 COMP-3.
        01  WS-CURRENT-BALANCE          PIC S9(10)V99 COMP-3.
        01  WS-COMMAND-LINE             PIC X(100).
-       
+       01 WS-TRANSACTION-COUNT    PIC 9(5) VALUE 0.
+       01 WS-EOF-FLAG             PIC X VALUE 'N'.
+          88 WS-EOF               VALUE 'Y'.
+          88 WS-NOT-EOF           VALUE 'N'.
+
        PROCEDURE DIVISION.
        
        MAIN-PROCESSING.
@@ -93,6 +97,8 @@
                        PERFORM BALANCE-INQUIRY
                    WHEN "HISTORY"
                        PERFORM TRANSACTION-HISTORY
+                   WHEN "LIST"
+                       PERFORM LIST-ALL-ACCOUNTS
                    WHEN OTHER
                        DISPLAY "Invalid command: " WS-COMMAND
                        MOVE 8 TO WS-MAIN-RETURN-CODE
@@ -189,7 +195,7 @@
            
       *    Validate command
            IF WS-COMMAND = "CREATE" OR "DEPOSIT" OR "WITHDRAW" OR
-              "TRANSFER" OR "BALANCE" OR "HISTORY"
+              "TRANSFER" OR "BALANCE" OR "HISTORY" OR "LIST"
                SET VALID-COMMAND TO TRUE
            ELSE
                SET INVALID-COMMAND TO TRUE
@@ -308,6 +314,7 @@
                            DISPLAY WS-DISPLAY-AMOUNT
                            MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
                            DISPLAY WS-DISPLAY-BALANCE
+                           PERFORM RECORD-TRANSACTION
                            MOVE 0 TO WS-MAIN-RETURN-CODE
                        ELSE
                            DISPLAY "Error updating account"
@@ -358,6 +365,7 @@
                                DISPLAY WS-DISPLAY-AMOUNT
                                MOVE ACC-BALANCE TO WS-DISPLAY-BALANCE
                                DISPLAY WS-DISPLAY-BALANCE
+                               PERFORM RECORD-TRANSACTION
                                MOVE 0 TO WS-MAIN-RETURN-CODE
                            ELSE
                                DISPLAY "Error updating account"
@@ -425,6 +433,9 @@
                    MOVE ACC-BALANCE TO WS-TO-BALANCE
            END-READ
            
+      *    Record the transfer transaction
+           PERFORM RECORD-TRANSACTION
+
       *    Update FROM account (subtract amount)
            MOVE WS-ACCOUNT-PARM TO ACC-NUMBER
            READ ACCOUNT-FILE
@@ -580,18 +591,56 @@
            DISPLAY " "
            DISPLAY "HISTORY account-num"
            DISPLAY "  Example: HISTORY 1234567890"
+           DISPLAY " "
+           DISPLAY "LIST"
+           DISPLAY "  Example: LIST"
            DISPLAY " ".
        
        DISPLAY-TRANSACTION-HISTORY-INLINE.
-      *    Simple transaction history display
            DISPLAY " "
            DISPLAY "TRANSACTION HISTORY FOR ACCOUNT: " WS-ACCOUNT-PARM
-           DISPLAY "Transaction history feature is implemented"
-           DISPLAY "but requires database connection for full display."
-           DISPLAY " ".
+           DISPLAY "---------------------------------------------"
+           OPEN INPUT TRANSACTION-FILE
+           MOVE 0 TO WS-TRANSACTION-COUNT
+           SET WS-NOT-EOF TO TRUE
+           PERFORM UNTIL WS-EOF
+               READ TRANSACTION-FILE
+                   AT END
+                       SET WS-EOF TO TRUE
+                   NOT AT END
+                       IF TXN-FROM-ACCOUNT = WS-ACCOUNT-PARM OR
+                          TXN-TO-ACCOUNT = WS-ACCOUNT-PARM
+                           ADD 1 TO WS-TRANSACTION-COUNT
+                           DISPLAY "Date: " TXN-DATE
+                                   " Time: " TXN-TIME
+                                   " Type: " TXN-TYPE
+                                   " Amount: " TXN-AMOUNT
+                                   " Desc: " TXN-DESCRIPTION
+                                   " Status: " TXN-STATUS
+                       END-IF
+               END-READ
+           END-PERFORM
+           CLOSE TRANSACTION-FILE
+           IF WS-TRANSACTION-COUNT = 0
+               DISPLAY "No transactions found for this account."
+           END-IF
+           DISPLAY " ".       
        
+       LIST-ALL-ACCOUNTS.
+           OPEN INPUT ACCOUNT-FILE
+           DISPLAY "ACCOUNT-NUMBER CUSTOMER-NAME      BALANCE    STATUS"
+           DISPLAY "==================================================="
+           PERFORM UNTIL WS-FILE-STATUS = "10"
+               READ ACCOUNT-FILE NEXT
+                   AT END
+                       CONTINUE
+                   NOT AT END
+                       DISPLAY ACC-NUMBER " " ACC-CUSTOMER-NAME 
+                       DISPLAY" " ACC-BALANCE " " ACC-STATUS
+               END-READ
+           END-PERFORM
+           CLOSE ACCOUNT-FILE.
 
-       
        PARSE-AMOUNT-VALUE.
       *    Convert amount using NUMVAL function for decimal handling
            IF WS-TEMP-AMOUNT NOT = SPACES

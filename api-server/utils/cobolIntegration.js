@@ -128,6 +128,46 @@ class COBOLIntegration {
     });
   }
 
+  async listAccounts() {
+    const result = await this.executeCommand("LIST");
+    return this.parseListAccountsOutput(result.rawOutput);
+  }
+
+  /**
+   * Parse LIST command output
+   * Expected format: header lines, then one account per line
+   */
+  parseListAccountsOutput(output) {
+    const lines = output
+      .split("\n")
+      .map((line) => line.trimEnd())
+      .filter(
+        (line) =>
+          line && !line.startsWith("=") && !line.startsWith("ACCOUNT-NUMBER")
+      );
+
+    const accounts = [];
+    for (let i = 0; i < lines.length - 1; i += 2) {
+      const line1 = lines[i];
+      const line2 = lines[i + 1];
+
+      // First line: account number and customer name
+      const match1 = line1.match(/^(\d+)\s+(.+)$/);
+      // Second line: balance and status
+      const match2 = line2.match(/([+-]?\d[\d,\.]*)\s+([A-Z])$/);
+
+      if (match1 && match2) {
+        accounts.push({
+          accountNumber: match1[1],
+          customerName: match1[2].trim().replace(/_/g, " "),
+          balance: parseFloat(match2[1].replace(/,/g, "")),
+          status: match2[2],
+        });
+      }
+    }
+    return accounts;
+  }
+
   /**
    * Parse COBOL program output based on command type
    * @param {string} command - The command that was executed
@@ -152,6 +192,8 @@ class COBOLIntegration {
         return this.parseTransferOutput(output);
       case "HISTORY":
         return this.parseHistoryOutput(output);
+      case "LIST":
+        return this.parseListAccountsOutput(output);
       default:
         throw new Error(`Unknown command type: ${command}`);
     }
@@ -329,12 +371,52 @@ class COBOLIntegration {
    * Expected format: Transaction history listing
    */
   parseHistoryOutput(output) {
-    // This will be implemented when HISTORY functionality is fully working in COBOL
-    return {
-      message: "History functionality requires full COBOL implementation",
-      rawOutput: output,
-      status: "partial_implementation",
-    };
+    // Split output into lines and filter for transaction lines
+    const lines = output
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("Date:"));
+
+    // Parse each transaction line
+    const transactions = lines
+      .map((line) => {
+        // Example line:
+        // Date: 20251003 Time: 093722 Type: D Amount: 0000000250.50 Desc: DEPOSIT                                  Status: P
+        const match = line.match(
+          /^Date:\s*(\d{8})\s*Time:\s*(\d{6})\s*Type:\s*([A-Z])\s*Amount:\s*([0-9\.\-]+)\s*Desc:\s*(.{1,40})\s*Status:\s*([A-Z])$/
+        );
+        if (!match) return null;
+
+        // Format date and time
+        const date = match[1];
+        const time = match[2];
+        const type = match[3];
+        const amount = parseFloat(match[4]);
+        const description = match[5].trim();
+        const status = match[6];
+
+        // Convert date/time to ISO string if desired
+        const formattedDate = `${date.slice(0, 4)}-${date.slice(
+          4,
+          6
+        )}-${date.slice(6, 8)}`;
+        const formattedTime = `${time.slice(0, 2)}:${time.slice(
+          2,
+          4
+        )}:${time.slice(4, 6)}`;
+
+        return {
+          date: formattedDate,
+          time: formattedTime,
+          type,
+          amount,
+          description,
+          status,
+        };
+      })
+      .filter(Boolean);
+
+    return transactions;
   }
 
   /**

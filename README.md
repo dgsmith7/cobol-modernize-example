@@ -6,6 +6,8 @@ This project was built on a 2023 Macbook Pro M3 with a Pro chip, using gnuCOBOL,
 
 I used github Copilot as an AI assistant during all steps of this project.
 
+I encourage feedback and discussion. Feel free to submit an issue.
+
 ## Project Overview
 
 This repository contains a complete, working example of enterprise legacy modernization:

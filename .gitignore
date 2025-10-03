@@ -13,12 +13,12 @@ cobol-banking/bin/*
 !cobol-banking/bin/.gitkeep
 
 # COBOL data files (optional - remove lines below if you want to commit data)
-cobol-banking/data/ACCOUNTS.DAT
-cobol-banking/data/TRANSACT.DAT
-cobol-banking/data/COUNTER.DAT
-cobol-banking/data/*.DAT
-cobol-banking/data/*.TMP
-cobol-banking/data/*.BAK
+#cobol-banking/data/ACCOUNTS.DAT
+#cobol-banking/data/TRANSACT.DAT
+#cobol-banking/data/COUNTER.DAT
+#cobol-banking/data/*.DAT
+#cobol-banking/data/*.TMP
+#cobol-banking/data/*.BAK
 
 # COBOL compilation artifacts
 *.o

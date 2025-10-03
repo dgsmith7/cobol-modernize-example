@@ -26,7 +26,7 @@ cobol-modernize-example/
 ├── api-server/           # Node.js/Express REST API server
 │   └── README-API.md         # API documentation
 ├── cobol-banking-ui/     # React + Vite web frontend
-│   └── README-UI.md         # Frontend documentation
+    └── README-UI.md         # Frontend documentation
 ```
 
 ## Getting Started

@@ -2,6 +2,16 @@ import React, { useEffect } from "react";
 import useApi from "../hooks/useApi";
 import Spinner from "./Spinner";
 
+function formatName(name) {
+  if (!name) return "";
+  // convert underscores (COBOL-safe names) to spaces, trim, and Title Case
+  const withSpaces = name.replace(/_/g, " ").trim();
+  return withSpaces
+    .split(/\s+/)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export default function AccountList({ onSelect }) {
   const { loading, error, data: accounts, request } = useApi();
 
@@ -31,8 +41,8 @@ export default function AccountList({ onSelect }) {
           {accounts.map((acc) => (
             <tr key={acc.accountNumber}>
               <td>{acc.accountNumber}</td>
-              <td>{acc.customerName}</td>
-              <td>${acc.balance}</td>
+              <td>{formatName(acc.customerName)}</td>
+              <td>${Number(acc.balance || 0).toFixed(2)}</td>
               <td>{acc.status}</td>
               <td>
                 <button

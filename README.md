@@ -14,7 +14,7 @@ I encourage feedback and discussion. Feel free to submit an issue.
 
 This repository contains a complete, working example of enterprise legacy modernization:
 
-- **COBOL Core**: The original banking logic, file formats, and CLI interface remain unchanged. All business logic, data validation, and transaction processing are handled by the original COBOL programs. Data is stored in sequential files for maximum compatibility.
+- **COBOL Core**: The original banking logic, file formats, and CLI interface remain unchanged. All business logic, data validation, and transaction processing are handled by the original COBOL programs. Data is stored in sequential files for maximum compatibility. Additionally, there is a script that re-baselines the database with stunt accounts and transactions for experimentation (deleting existing files and replacing them with "stunt data").
 - **Node.js API Server**: A RESTful API layer that invokes COBOL programs, parses their output, and exposes modern endpoints. The Node.js server exposes REST endpoints for all banking operations. Each API call spawns a COBOL process, passes parameters, and parses the output into JSON. Handles input validation, error translation, and potentially CORS for web access, although it has been tested on a local server.
 - **React Frontend**: A responsive, user-friendly web UI for all banking operations, communicating with the API server. The web UI provides account management, transactions, and history views. It uses React Router for navigation and Bootstrap for styling. All operations are performed via API calls—no direct access to COBOL or data files.
 
@@ -89,14 +89,18 @@ Runs on http://localhost:5173
 
 ## Extending the Project
 
-- Add new API endpoints by mapping additional COBOL commands.
+- Add new API endpoints by mapping additional COBOL commands. Some possibilities are daily batch runs that calculate interest and fees and make needed deposits, or monthly statement generation.
 - Enhance the frontend with charts, reports, or mobile support.
 - Replace file storage with a database (optional, requires COBOL changes).
+- Keep flat file storage in COBOL, migrate and periodically update (perhpas daily or weekly) to SQL DB using javascript - this will allows benefits of RDMS without requiring changes to COBOL core.
 - Integrate authentication or role-based access in the API/UI layers.
-- Update CORS for deployment to web.
-- Improve data files.
+- Improve and expnd "stunt data" files. The current script () generates a limited number of accounts and transactions. The script could be refactored to generate motnhs of data and many more accounts, providing an expanded test bed.
+- Add cron jobs to API scripts that generate daily "stunt activities" on accounts to simulate a more realistic environment. This would be useful for testing and building an ehanced front end with charts and visuals.
+- After sufficient accumulation af data, demonstrate a Python ML pipeline to conducts training and inference on data set to make redication of future account activities.
 - Continue further testing.
 - Improve error handling.
+- Simulate JCL job scheduling as if the COBOL code resided on a mainframe seperate from the API and front-end code.
+- Dockerize this project for one-click demonstration.
 
 ## Documentation
 
